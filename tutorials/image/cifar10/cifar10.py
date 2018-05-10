@@ -184,8 +184,83 @@ def inputs(eval_data):
     labels = tf.cast(labels, tf.float16)
   return images, labels
 
-## MODIFIED: Add training parameter to inference model.
 def inference(images, training):
+  conv1 = tf.layers.conv2d(
+      inputs=images,
+      filters=192,
+      kernel_size=[5, 5],
+      padding="same",
+      activation=tf.nn.relu)
+  bn1 = tf.layers.batch_normalization(conv1, training=training)
+  conv2 = tf.layers.conv2d(
+      inputs=bn1,
+      filters=160,
+      kernel_size=[1, 1],
+      padding="same",
+      activation=tf.nn.relu) # k = 5?
+  bn2 = tf.layers.batch_normalization(conv2, training=training)
+  conv3 = tf.layers.conv2d(
+      inputs=bn2,
+      filters=96,
+      kernel_size=[1,1],
+      padding="same",
+      activation=tf.nn.relu) # k 5?
+  bn3 = tf.layers.batch_normalization(conv3, training=training)
+  pool1 = tf.layers.average_pooling2d(inputs=bn3, pool_size=[3, 3], strides=2)
+  dropout1 = tf.layers.dropout(inputs=pool1, training=training)
+  conv4 = tf.layers.conv2d(
+      inputs=dropout1,
+      filters=192,
+      kernel_size=[5, 5],
+      padding="same",
+      activation=tf.nn.relu)
+  bn4 = tf.layers.batch_normalization(conv4, training=training)
+  conv5 = tf.layers.conv2d(
+      inputs=bn4,
+      filters=192,
+      kernel_size=[1, 1],
+      padding="same",
+      activation=tf.nn.relu) # k = 5?
+  bn5 = tf.layers.batch_normalization(conv5, training=training) 
+  conv6 = tf.layers.conv2d(
+      inputs=bn5,
+      filters=192,
+      kernel_size=[1, 1],
+      padding="same",
+      activation=tf.nn.relu) # k = 5?
+  bn6 = tf.layers.batch_normalization(conv6, training=training)
+  pool2 = tf.layers.average_pooling2d(inputs=bn6, pool_size=[3, 3], strides=2)
+  dropout2 = tf.layers.dropout(inputs=pool2, training=training)
+  conv7 = tf.layers.conv2d(
+      inputs=dropout2,
+      filters=192,
+      kernel_size=[3, 3],
+      padding="same",
+      activation=tf.nn.relu)
+  bn7 = tf.layers.batch_normalization(conv7, training=training)
+  conv8 = tf.layers.conv2d(
+      inputs=bn7,
+      filters=192,
+      kernel_size=[1, 1],
+      padding="same",
+      activation=tf.nn.relu)
+  bn8 = tf.layers.batch_normalization(conv8, training=training)
+  conv9 = tf.layers.conv2d(
+      inputs=bn8,
+      filters=10,
+      kernel_size=[1, 1],
+      padding="same",
+      activation=tf.nn.relu)
+  bn9 = tf.layers.batch_normalization(conv9, training=training)
+  pool3 = tf.layers.average_pooling2d(inputs=bn9, pool_size=[5, 5], strides=1)
+
+  flat = tf.contrib.layers.flatten(pool3)
+  logits = tf.layers.dense(inputs=flat, units=10)
+  softy = tf.nn.softmax(logits)
+  return softy
+
+## MODIFIED: Add training parameter to inference model.
+def original_inference(images, training):
   """Build the CIFAR-10 model.
 
   Args:
@@ -214,6 +289,8 @@ def inference(images, training):
   # pool1
   pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
                          padding='SAME', name='pool1')
+
+
   # norm1
   norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
                     name='norm1')
@@ -342,21 +419,13 @@ def train(total_loss, global_step):
   num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
   decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 
-  # Decay the learning rate exponentially based on the number of steps.
-  lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
-                                  global_step,
-                                  decay_steps,
-                                  LEARNING_RATE_DECAY_FACTOR,
-                                  staircase=True)
-  tf.summary.scalar('learning_rate', lr)
-
   # Generate moving averages of all losses and associated summaries.
   loss_averages_op = _add_loss_summaries(total_loss)
 
   # Compute gradients.
   with tf.control_dependencies([loss_averages_op]):
     # MODIFIED:: Adam Optimizer
-    opt = tf.train.AdamOptimizer(learning_rate=1e-4)
+    opt = tf.train.AdamOptimizer(learning_rate=0.001)
     grads = opt.compute_gradients(total_loss)
 
   # Apply gradients.
