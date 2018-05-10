@@ -51,7 +51,7 @@ tf.app.flags.DEFINE_string('eval_data', 'test',
                            """Either 'test' or 'train_eval'.""")
 tf.app.flags.DEFINE_string('checkpoint_dir', './tmp/cifar10_train',
                            """Directory where to read model checkpoints.""")
-tf.app.flags.DEFINE_integer('eval_interval_secs', 10,
+tf.app.flags.DEFINE_integer('eval_interval_secs', 30,
                             """How often to run the eval.""")
 tf.app.flags.DEFINE_integer('num_examples', 10000,
                             """Number of examples to run.""")
@@ -122,7 +122,8 @@ def evaluate():
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = cifar10.inference(images)
+    # MODIFIED:: Add training parameter.
+    logits = cifar10.inference(images, training=False)
 
     # Calculate predictions.
     top_k_op = tf.nn.in_top_k(logits, labels, 1)

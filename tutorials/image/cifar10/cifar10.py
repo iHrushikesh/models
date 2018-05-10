@@ -22,7 +22,7 @@ Summary of available functions:
  inputs, labels = distorted_inputs()
 
  # Compute inference on the model inputs to make a prediction.
- predictions = inference(inputs)
+ predictions = inference(inputs, training=True/False)
 
  # Compute the total loss of the prediction with respect to the labels.
  loss = loss(predictions, labels)
@@ -184,8 +184,8 @@ def inputs(eval_data):
     labels = tf.cast(labels, tf.float16)
   return images, labels
 
-
-def inference(images):
+## MODIFIED: Add training parameter to inference model.
+def inference(images, training):
   """Build the CIFAR-10 model.
 
   Args:
@@ -237,10 +237,13 @@ def inference(images):
   pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
                          strides=[1, 2, 2, 1], padding='SAME', name='pool2')
 
+  # MODIFIED:: Add a dropout layer to second pooling layer
+  dropout = tf.layers.dropout(inputs=pool2, rate=0.5, training=training)
+
   # local3
   with tf.variable_scope('local3') as scope:
     # Move everything into depth so we can perform a single matrix multiply.
-    reshape = tf.reshape(pool2, [images.get_shape().as_list()[0], -1])
+    reshape = tf.reshape(dropout, [images.get_shape().as_list()[0], -1])
     dim = reshape.get_shape()[1].value
     weights = _variable_with_weight_decay('weights', shape=[dim, 384],
                                           stddev=0.04, wd=0.004)
@@ -352,7 +355,8 @@ def train(total_loss, global_step):
 
   # Compute gradients.
   with tf.control_dependencies([loss_averages_op]):
-    opt = tf.train.GradientDescentOptimizer(lr)
+    # MODIFIED:: Adam Optimizer
+    opt = tf.train.AdamOptimizer(learning_rate=1e-4)
     grads = opt.compute_gradients(total_loss)
 
   # Apply gradients.

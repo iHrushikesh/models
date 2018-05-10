@@ -75,7 +75,8 @@ def tower_loss(scope, images, labels):
   """
 
   # Build inference Graph.
-  logits = cifar10.inference(images)
+  ## MODIFIED:: Add training parameter
+  logits = cifar10.inference(images,training=True)
 
   # Build the portion of the Graph calculating the losses. Note that we will
   # assemble the total_loss using a custom function below.
