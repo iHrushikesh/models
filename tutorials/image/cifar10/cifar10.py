@@ -215,8 +215,9 @@ def inference(images, training):
   pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
                          padding='SAME', name='pool1')
   # norm1
-  norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                    name='norm1')
+  norm1 = tf.layers.batch_normalization(inputs=conv1,training=training)
+  #norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+  #                  name='norm1')
 
   # conv2
   with tf.variable_scope('conv2') as scope:
@@ -231,19 +232,21 @@ def inference(images, training):
     _activation_summary(conv2)
 
   # norm2
-  norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                    name='norm2')
+#  norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+#                    name='norm2')
+  norm2 = tf.layers.batch_normalization(inputs=conv2,training=training)
+
   # pool2
   pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
                          strides=[1, 2, 2, 1], padding='SAME', name='pool2')
 
   # MODIFIED:: Add a dropout layer to second pooling layer
-  dropout = tf.layers.dropout(inputs=pool2, rate=0.5, training=training)
+  # dropout = tf.layers.dropout(inputs=pool2, rate=0.5, training=training)
 
   # local3
   with tf.variable_scope('local3') as scope:
     # Move everything into depth so we can perform a single matrix multiply.
-    reshape = tf.reshape(dropout, [images.get_shape().as_list()[0], -1])
+    reshape = tf.reshape(pool2, [images.get_shape().as_list()[0], -1])
     dim = reshape.get_shape()[1].value
     weights = _variable_with_weight_decay('weights', shape=[dim, 384],
                                           stddev=0.04, wd=0.004)

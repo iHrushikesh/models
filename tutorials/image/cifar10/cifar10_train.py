@@ -52,7 +52,7 @@ tf.app.flags.DEFINE_integer('max_steps', 60000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
-tf.app.flags.DEFINE_integer('log_frequency', 100,
+tf.app.flags.DEFINE_integer('log_frequency', 10,
                             """How often to log results to the console.""")
 
 
@@ -106,6 +106,7 @@ def train():
                                examples_per_sec, sec_per_batch))
 
     with tf.train.MonitoredTrainingSession(
+        save_checkpoint_secs=15,
         checkpoint_dir=FLAGS.train_dir,
         hooks=[tf.train.StopAtStepHook(last_step=FLAGS.max_steps),
                tf.train.NanTensorHook(loss),
