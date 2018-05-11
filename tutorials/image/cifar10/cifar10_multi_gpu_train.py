@@ -158,6 +158,7 @@ def train():
                                     staircase=True)
 
     # Create an optimizer that performs gradient descent.
+    crash
     opt = tf.train.GradientDescentOptimizer(lr)
 
     # Get images and labels for CIFAR-10.

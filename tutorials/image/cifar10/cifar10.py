@@ -185,7 +185,7 @@ def inputs(eval_data):
   return images, labels
 
 
-def inference(images):
+def inference(images, training=True):
   """Build the CIFAR-10 model.
 
   Args:
@@ -215,8 +215,11 @@ def inference(images):
   pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
                          padding='SAME', name='pool1')
   # norm1
-  norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                    name='norm1')
+  #norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+  #                  name='norm1')
+
+  norm1 = tf.layers.batch_normalization(inputs=pool1, training=training)
+
 
   # conv2
   with tf.variable_scope('conv2') as scope:
@@ -230,9 +233,13 @@ def inference(images):
     conv2 = tf.nn.relu(pre_activation, name=scope.name)
     _activation_summary(conv2)
 
+  dropout = tf.layers.dropout(inputs=conv2, training=training)
+
   # norm2
-  norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                    name='norm2')
+  # norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+  #                  name='norm2')
+  norm2 = tf.layers.batch_normalization(inputs=dropout, training=training)
+
   # pool2
   pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
                          strides=[1, 2, 2, 1], padding='SAME', name='pool2')
@@ -340,19 +347,20 @@ def train(total_loss, global_step):
   decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 
   # Decay the learning rate exponentially based on the number of steps.
-  lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
-                                  global_step,
-                                  decay_steps,
-                                  LEARNING_RATE_DECAY_FACTOR,
-                                  staircase=True)
-  tf.summary.scalar('learning_rate', lr)
+  # lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+  #                                 global_step,
+  #                                 decay_steps,
+  #                                 LEARNING_RATE_DECAY_FACTOR,
+  #                                 staircase=True)
+  # tf.summary.scalar('learning_rate', lr)
 
   # Generate moving averages of all losses and associated summaries.
   loss_averages_op = _add_loss_summaries(total_loss)
 
   # Compute gradients.
   with tf.control_dependencies([loss_averages_op]):
-    opt = tf.train.GradientDescentOptimizer(lr)
+    #opt = tf.train.GradientDescentOptimizer(lr)
+    opt = tf.train.AdamOptimizer(learning_rate=0.001)
     grads = opt.compute_gradients(total_loss)
 
   # Apply gradients.
